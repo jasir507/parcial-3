@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Eventos Panamá — Venta de Boletos</title>
+
+  <style>
+    body{
+      margin:0;
+      padding:20px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:#f4f4f7;
+      color:#222;
+    }
+
+    .container{
+      max-width:900px;
+      margin:auto;
+      background:white;
+      padding:20px;
+      border-radius:10px;
+      box-shadow:0 0 10px rgba(0,0,0,0.1);
+    }
+
+    form{
+      background:#fafafa;
+      padding:15px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      margin-bottom:20px;
+    }
+
+    label{
+      font-size:14px;
+      font-weight:bold;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:5px;
+      border:1px solid #bbb;
+      border-radius:6px;
+      margin-bottom:15px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+    }
+    .col{flex:1;}
+
+    button{
+      padding:10px 14px;
+      background:#0074d4;
+      border:none;
+      color:white;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+    button:hover{
+      background:#005fa7;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:15px;
+    }
+    th,td{
+      padding:10px;
+      border-bottom:1px solid #ddd;
+    }
+    th{
+      background:#f0f0f0;
+    }
+
+    .deleteBtn{
+      background:#d9534f;
+      padding:6px 10px;
+      border:none;
+      border-radius:4px;
+      color:white;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .deleteBtn:hover{
+      background:#b52b27;
+    }
+
+    .summary{
+      margin-top:20px;
+      padding:15px;
+      background:#fafafa;
+      border:1px solid #ddd;
+      border-radius:8px;
+    }
+
+    .item{
+      display:flex;
+      justify-content:space-between;
+      padding:6px 0;
+      border-bottom:1px solid #eee;
+    }
+
+    .error{color:#d00;font-size:14px;}
+    .success{color:#0a7a25;font-size:14px;}
+
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>Eventos Panamá — Venta de Boletos</h1>
+
+  <form id="saleForm">
+
+    <label>Nombre del cliente</label>
+    <input type="text" id="clientName">
+
+    <div class="row">
+      <div class="col">
+        <label>Puestos VIP ($50)</label>
+        <input type="number" id="vipQty" min="0" value="0">
+      </div>
+      <div class="col">
+        <label>Butacas ($30)</label>
+        <input type="number" id="butacasQty" min="0" value="0">
+      </div>
+      <div class="col">
+        <label>Generales ($15)</label>
+        <input type="number" id="generalQty" min="0" value="0">
+      </div>
+    </div>
+
+    <label>Notas (opcional)</label>
+    <input type="text" id="notes">
+
+    <button type="button" id="addSaleBtn">Registrar Venta</button>
+
+    <p id="formMessage"></p>
+
+  </form>
+
+  <h3>Ventas Registradas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>VIP</th>
+        <th>Butacas</th>
+        <th>Generales</th>
+        <th>Total</th>
+        <th>Eliminar</th>
+      </tr>
+    </thead>
+    <tbody id="salesBody"></tbody>
+  </table>
+
+  <div class="summary">
+    <h3>Resumen Total</h3>
+
+    <div class="item"><span>VIP vendidos:</span> <span id="vipCount">0</span></div>
+    <div class="item"><span>Butacas vendidas:</span> <span id="butacasCount">0</span></div>
+    <div class="item"><span>Generales vendidos:</span> <span id="generalCount">0</span></div>
+    <div class="item"><strong>Total boletos:</strong> <strong id="totalCount">0</strong></div>
+    <div class="item"><strong>Total $$$:</strong> <strong id="totalAmount">$0.00</strong></div>
+  </div>
+</div>
+
+<script>
+  const PRICE_VIP = 50;
+  const PRICE_BUTACAS = 30;
+  const PRICE_GENERAL = 15;
+
+  let sales = [];
+
+  const tbody = document.getElementById("salesBody");
+
+  document.getElementById("addSaleBtn").onclick = function(){
+
+    const client = document.getElementById("clientName").value.trim();
+    const vip = parseInt(document.getElementById("vipQty").value) || 0;
+    const butacas = parseInt(document.getElementById("butacasQty").value) || 0;
+    const general = parseInt(document.getElementById("generalQty").value) || 0;
+    const notes = document.getElementById("notes").value.trim();
+
+    const msg = document.getElementById("formMessage");
+
+    if(client === ""){
+      msg.textContent = "Debe ingresar el nombre del cliente.";
+      msg.className = "error";
+      return;
+    }
+    if(vip+butacas+general === 0){
+      msg.textContent = "Debe comprar al menos un boleto.";
+      msg.className = "error";
+      return;
+    }
+
+    msg.textContent = "";
+
+    const total = vip*PRICE_VIP + butacas*PRICE_BUTACAS + general*PRICE_GENERAL;
+
+    sales.push({ client, vip, butacas, general, total, notes });
+
+    renderTable();
+    renderSummary();
+
+    msg.textContent = "Venta registrada correctamente.";
+    msg.className = "success";
+
+    document.getElementById("saleForm").reset();
+  }
+
+  function renderTable(){
+    tbody.innerHTML = "";
+
+    sales.forEach((s, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${s.client}</td>
+        <td>${s.vip}</td>
+        <td>${s.butacas}</td>
+        <td>${s.general}</td>
+        <td>$${s.total.toFixed(2)}</td>
+        <td><button class="deleteBtn" onclick="deleteSale(${index})">X</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function deleteSale(index){
+    sales.splice(index, 1);
+    renderTable();
+    renderSummary();
+  }
+
+  function renderSummary(){
+    let vip=0, butacas=0, general=0, total=0;
+
+    sales.forEach(s=>{
+      vip += s.vip;
+      butacas += s.butacas;
+      general += s.general;
+      total += s.total;
+    });
+
+    document.getElementById("vipCount").textContent = vip;
+    document.getElementById("butacasCount").textContent = butacas;
+    document.getElementById("generalCount").textContent = general;
+    document.getElementById("totalCount").textContent = vip+butacas+general;
+    document.getElementById("totalAmount").textContent = "$" + total.toFixed(2);
+  }
+</script>
+
+</body>
+</html>
